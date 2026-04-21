@@ -7,9 +7,6 @@ from rag import retrieve_answer
 from tools import mock_lead_capture
 
 
-# -----------------------------
-# STATE
-# -----------------------------
 class AgentState(TypedDict):
     user_input: str
     intent: str
@@ -21,9 +18,6 @@ class AgentState(TypedDict):
     lead_done: bool
 
 
-# -----------------------------
-# NODES
-# -----------------------------
 def classify_node(state):
     # If already collecting lead details, stay in lead flow
     if state["intent"]:
@@ -36,14 +30,17 @@ def classify_node(state):
     return state
 
 
+
 def greeting_node(state):
     state["response"] = "Hello! Welcome to AutoStream. How can I help you?"
     return state
 
 
+
 def product_node(state):
     state["response"] = retrieve_answer(state["user_input"])
     return state
+
 
 
 def unknown_node(state):
@@ -54,30 +51,24 @@ def unknown_node(state):
 
 
 def lead_node(state):
-    # If already completed
     if state["lead_done"]:
         state["response"] = "Your lead is already captured. Our team will contact you soon."
         return state
 
-    # Ask Name
+
     if not state["name"]:
         state["response"] = "Great! What's your name?"
         state["awaiting_field"] = "name"
         return state
-
-    # Ask Email
     if not state["email"]:
         state["response"] = "Please share your email."
         state["awaiting_field"] = "email"
         return state
-
-    # Ask Platform
     if not state["platform"]:
         state["response"] = "Which creator platform do you use? (YouTube / Instagram / etc.)"
         state["awaiting_field"] = "platform"
         return state
 
-    # Trigger tool only when all collected
     mock_lead_capture(state["name"], state["email"], state["platform"])
 
     state["response"] = "Thanks! Your lead has been captured successfully."
@@ -86,16 +77,10 @@ def lead_node(state):
     return state
 
 
-# -----------------------------
-# ROUTER
-# -----------------------------
 def router(state):
     return state["intent"]
 
 
-# -----------------------------
-# BUILD GRAPH
-# -----------------------------
 graph = StateGraph(AgentState)
 
 graph.add_node("classify", classify_node)
@@ -125,9 +110,6 @@ graph.add_edge("unknown", END)
 app = graph.compile()
 
 
-# -----------------------------
-# MEMORY
-# -----------------------------
 memory = {
     "name": "",
     "email": "",
@@ -137,9 +119,6 @@ memory = {
 }
 
 
-# -----------------------------
-# CHAT LOOP
-# -----------------------------
 print("Type 'exit' to quit.\n")
 
 while True:
@@ -150,7 +129,6 @@ while True:
     
     forced_intent = ""
 
-    # Capture form values if bot was waiting
     if memory["awaiting_field"] == "name":
         memory["name"] = user
         memory["awaiting_field"] = ""
@@ -177,7 +155,6 @@ while True:
         "lead_done": memory["lead_done"]
     })
 
-    # Save updated memory
     memory["awaiting_field"] = result["awaiting_field"]
     memory["lead_done"] = result["lead_done"]
     
